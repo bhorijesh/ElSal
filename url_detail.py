@@ -22,7 +22,7 @@ def scrape_data(driver, link):
 
     # Initialize empty fields
     title, price, code_number, location, property_type, sale_type, descriptions,privacy = [None] * 8
-    rooms,land_area,construction_area, Levels, bathrooms_info, image_src_list = {},{"area_square_vara" : None},{"Construction_area" : None},{"levels" : None},{"Full_Bathrooms": None, "Half_Bathrooms": None}, []
+    rooms,rom,land_area,construction_area, Levels,park, bathrooms_info, image_src_list = {},{"Bedroom": None},{"area_square_vara" : None},{"Construction_area" : None},{"levels" : None},{"parking" : None},{"full_bathrooms": None, "half_bathrooms": None}, []
 
     try:
         # Find the details container
@@ -53,8 +53,12 @@ def scrape_data(driver, link):
             sale_type = list_items[2].get_text(strip=True) 
 
         # Extract description
-        desc = soup.find('div', class_="md-col md-col-8 px2 mb4")
-        descriptions = str(desc.get_text(strip=True)) if desc else None
+        desc_section = soup.find('div', class_="md-col md-col-8 px2 mb4")
+        if desc_section:
+            descriptions = ''.join(desc_section.find_all(string=True, recursive=False)).strip()
+        else:
+            descriptions = None
+
 
         # Extract room and bathroom details
         contain = soup.find('div', class_="clearfix mb2")
@@ -82,17 +86,28 @@ def scrape_data(driver, link):
                         if value_element:
                             value = value_element.get_text(strip=True)
                             datas = value.split()
-                            bathrooms_info["Full_Bathrooms"] = datas[0].replace('x', '') if len(datas) > 0 else None
-                            bathrooms_info["Half_Bathrooms"] = datas[1].replace('½', '1') if len(datas) > 1 else None
+                            bathrooms_info["full_bathrooms"] = datas[0].replace('x', '') if len(datas) > 0 else None
+                            bathrooms_info["half_bathrooms"] = datas[1].replace('½', '1') if len(datas) > 1 else None
 
                     # For individual 'Full baths' or 'half baths'
                     elif key and ('Full baths' in key or 'half baths' in key):
                         value_element = container.find('div', class_='inline-block text-80')
                         if value_element:
                             value = value_element.get_text(strip=True).replace('x', '')
-                            bathrooms_info["Full_Bathrooms"] = value
+                            bathrooms_info["full_bathrooms"] = value
                         half_bath_match = re.findall(r'\d+', key)
-                        bathrooms_info["Half_Bathrooms"] = int(half_bath_match[0]) if half_bath_match else None
+                        bathrooms_info["half_bathrooms"] = int(half_bath_match[0]) if half_bath_match else None
+                    elif key and "Parking Lot" in key:
+                        value_element = container.find('div', class_='inline-block text-80')
+                        if value_element:
+                            value = value_element.text.strip().replace('x','').split()
+                            park["parking"] = value[0] if value else None
+                    elif key and "Rooms" in key:
+                        value_element = container.find('div', class_='inline-block text-80')
+                        if value_element:
+                            value = value_element.get_text(strip=True).replace('x', '')
+                            rom["Bedroom"] = value if value else None
+
 
                     # For other room-related information
                     else:
@@ -153,31 +168,41 @@ def scrape_data(driver, link):
         print(f"Error while scraping {link}: {e}")
 
     unique_id = str(uuid.uuid4())
-    created_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    uploaded_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    deleted_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     country = "El Salvador"
+    previous = None
+    phone = None
+    price_unit = None
 
     # Use OrderedDict to maintain consistent column order
     return OrderedDict({
         'uuid': unique_id,
         'link': link,
-        'Title': title,
-        'PRICE': price,
-        'CODE_NUMBER': code_number,
-        'LOCATION': location,
-        'PROPERTY_TYPE': property_type,
-        'TYPE': sale_type,
-        'Description': descriptions,
+        'title': title,
+        'price': price,
+        'code_number': code_number,
+        'location': location,
+        'property_type': property_type,
+        'type': sale_type,
+        'description': descriptions,
         **land_area,
         **construction_area,
         **bathrooms_info,
         **rooms,
+        **park,
         **Levels,
+        **rom,
         'privacy': privacy,
-        'Image_URLs': image_src_list,
-        'Country': country,
-        'Created_Date': created_date,
-        'Uploaded_Date': uploaded_date
+        'img_src': image_src_list,
+        'country': country,
+        'created_at': created_at,
+        'updated_at': updated_at,
+        'deleted_at' : deleted_at,
+        'previous_price' : previous,
+        'phone': phone,
+        'price_unit': price_unit
     })
 
 # Main function to manage the process
@@ -193,8 +218,8 @@ def main():
 
     # Loop through each URL in the CSV
     for index, row in csv_data.iterrows():
-        # if index >= 30:  
-        #     break
+        if index >= 5:  
+            break
 
         link= row['LINKS']
         data = scrape_data(driver, link)
@@ -204,22 +229,19 @@ def main():
     # Create a DataFrame from the scraped data
     scraped_df = pd.DataFrame(scraped_data)
 
-    # Add a sequential serial number to the 'id' column
-    scraped_df.insert(0, 'id', scraped_df.index + 1)
-
     # Define the desired column order
     column_order = [
-        'id', 'uuid', 'link', 'Title', 'PRICE', 'CODE_NUMBER', 'LOCATION', 
-        'PROPERTY_TYPE', 'TYPE', 'Description','Country', 'area_square_vara', 'Construction_area',
-        'Rooms', 'Full_Bathrooms', 'Half_Bathrooms', 'levels','Parking Lot','privacy', 'Image_URLs', 
-        'Created_Date', 'Uploaded_Date'
+        'uuid', 'link', 'title', 'price','price_unit','phone', 'code_number', 'location', 
+        'property_type', 'type', 'description','country', 'area_square_vara', 'Construction_area',
+        'Bedroom', 'full_bathrooms', 'half_bathrooms', 'levels','parking','privacy', 'img_src', 
+        'created_at', 'updated_at','deleted_at','previous_price'
     ]
 
     # Reorder the DataFrame columns
     scraped_df = scraped_df.reindex(columns=column_order)
 
-    # Save the DataFrame to a CSV file
-    scraped_df.to_csv('details.csv', index=False)
+    # Save the DataFrame to a CSV fileclear
+    scraped_df.to_csv('details2.csv', index=False)
 
     print("Scraping completed!")
     driver.quit()
