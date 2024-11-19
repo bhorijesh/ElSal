@@ -15,23 +15,23 @@ from base.db_connect import connect_database
 def insert_into_table(cursor, table):
     df = pd.read_csv('details.csv')
     df.fillna(
-            {
-            'price' : 0,
-            'area_square_vara' : 0,
-            'construction_area' : 0,
-            'Bedroom' : 0,
-            'full_bathrooms' : 0,
-            'half_bathrooms' : 0,
-            'parking' : 0,
-            'levels' : 0,
-            'phone' : 0,
+          {
+          'price' : 0,
+          'area_square_vara' : 0,
+          'construction_area' : 0,
+          'Bedroom' : 0,
+          'full_bathrooms' : 0,
+          'half_bathrooms' : 0,
+          'parking' : 0,
+          'levels' : 0,
+          'previous_price': 0,
+     
+          },
+          
+          inplace=True
+     )
         
-            },
-            
-            inplace=True
-        )
-        
-    df = df.fillna('')
+    df = df.fillna('NULL')
 
      
     placeholders = ', '.join(['%s'] * len(df.columns))

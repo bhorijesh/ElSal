@@ -7,7 +7,10 @@ from bs4 import BeautifulSoup
 import uuid
 from datetime import datetime
 from collections import OrderedDict
-import re  # Ensure re is imported for regex handling
+import re  
+import datetime
+from selenium.common.exceptions import TimeoutException
+
 
 # Scraping function that handles data extraction from a single URL
 def scrape_data(driver, link):
@@ -168,10 +171,10 @@ def scrape_data(driver, link):
         print(f"Error while scraping {link}: {e}")
 
     unique_id = str(uuid.uuid4())
-    created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    deleted_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    country = "El Salvador"
+    # created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # deleted_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # country = "El Salvador"
     previous = None
     phone = None
     price_unit = None
@@ -196,10 +199,10 @@ def scrape_data(driver, link):
         **rom,
         'privacy': privacy,
         'img_src': image_src_list,
-        'country': country,
-        'created_at': created_at,
-        'updated_at': updated_at,
-        'deleted_at' : deleted_at,
+        # 'country': country,
+        # 'created_at': created_at,
+        # # 'updated_at': updated_at,
+        # # 'deleted_at' : deleted_at,
         'previous_price' : previous,
         'phone': phone,
         'price_unit': price_unit
